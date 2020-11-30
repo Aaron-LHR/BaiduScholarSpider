@@ -12,27 +12,27 @@ from pinyin import pinyin
 from DatabaseDriver import DatabaseDriver
 
 
-class Parser (threading.Thread):
-    def __init__(self, html):
+class Parser(threading.Thread):
+    def __init__(self, html, databaseDriver, lock):
         super().__init__()
-        self.html= html
-        try:
-            self.databaseDriver = DatabaseDriver(host="49.232.157.22", port=3306, user="BUAA", passwd="BUAA1821",
-                                                 database_name="BUAA")
-        except:
-            print("连接数据库失败")
+        self.html = html
+        self.databaseDriver = databaseDriver
+        self.lock = lock
+        self.paperList = []
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/86.0.4240.183 Safari/537.36"}
 
     def run(self):
-        bs = BeautifulSoup(self.html, "html.parser")
-        paper_link = bs.select("h3[class='t c_font']")
-        # max_page_number = eval(
-        #     bs.select("span[class='nums']")[0].string.lstrip().rstrip().replace('\n', '').replace('\r', '')[
-        #     3: -5].replace(',', ""))
-        for li in paper_link:
-            self.savePaperByUrl("https:" + li.a.attrs['href'])
+        try:
+            bs = BeautifulSoup(self.html, "html.parser")
+            paper_link = bs.select("h3[class='t c_font']")
+            for li in paper_link:
+                self.savePaperByUrl("https:" + li.a.attrs['href'])
+            self.databaseDriver.insertPapers(self.paperList)
+        finally:
+            self.lock.release()
+
 
     def getTitle(self, main_info):
         try:
@@ -119,7 +119,8 @@ class Parser (threading.Thread):
                         time = main_info.select(".year_wr", limit=1)[0].select(".kw_main_s", limit=1)[0].string
                     except:
                         time = ""
-        time = time.lstrip().rstrip().replace('\n', '').replace('\r', '').replace('\r', '').replace('年', '-').replace('月', '-').replace('日', '').replace('.', '-').replace('/', '-')
+        time = time.lstrip().rstrip().replace('\n', '').replace('\r', '').replace('\r', '').replace('年', '-').replace(
+            '月', '-').replace('日', '').replace('.', '-').replace('/', '-')
         time = re.sub("[^0-9-]", "", time)
         if len(time) == 4:
             time = time + "-00-00"
@@ -217,18 +218,4 @@ class Parser (threading.Thread):
             "link": self.getLink(main_info[0]),
             "source": source
         }
-        flag =  self.databaseDriver.insertDocument(item["title"], item["authors"], item["category"], item["id"], item["time"],
-                                                   item["DOI"], item["ISBN"], item['patentNumber'], item["citedQuantity"],
-                                                   item["abstract"], item["keywords"], item["link"], item["source"])
-        print("")
-        print("已爬取：")
-        for key in item.keys():
-            print(key + ': ', end='')
-            print(item[key])
-        # self.databaseDriver.insertDocument(item)
-        if flag:
-            print("Insert successfully!")
-        else:
-            print("Fail:", end="")
-            print(flag)
-
+        self.paperList.append(item)

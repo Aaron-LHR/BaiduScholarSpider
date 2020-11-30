@@ -2,6 +2,7 @@
 import hashlib
 import random
 import re
+import threading
 import urllib.request
 import urllib.parse
 from urllib.parse import quote
@@ -19,6 +20,16 @@ class Reptile:
                           "Chrome/86.0.4240.183 Safari/537.36"}
         self.databaseDriver = DatabaseDriver(host="49.232.157.22", port=3306, user="BUAA", passwd="BUAA1821",
                                              database_name="BUAA")
+        self.numOfDriver = 10
+        self.listOfDriver = {}
+        for i in range(self.numOfDriver):
+            driverAndLock = {
+                "driver": DatabaseDriver(host="49.232.157.22", port=3306, user="BUAA", passwd="BUAA1821",
+                                         database_name="BUAA"),
+                "lock": threading.Lock()
+            }
+            self.listOfDriver[str(i)] = driverAndLock
+            print(str(i) + "号成功连接数据库！")
 
     def urlEncode(self, keyword, page_number):
         keyword = quote(keyword, encoding="utf-8")
@@ -40,19 +51,22 @@ class Reptile:
         # page_number = self.getPageNumber(keyword)
         page_number = 0
         # print("\"" + keyword + "\"" + "领域已爬取到" + str(page_number) + "条数据，本次继续爬取")
+        i = 0
         while True:
             request = urllib.request.Request(url=self.urlEncode(keyword, page_number), headers=self.headers)
             response = urllib.request.urlopen(request)
             html = response.read().decode("utf-8")
-            self.newThreadParse(html)
+            self.listOfDriver[str(i)]["lock"].acquire()
+            self.newThreadParse(html, str(i))
             page_number += 10
+            i = (i + 1) % self.numOfDriver
             if page_number >= 800:
                 break
             # self.databaseDriver.setPageNumber(keyword, str(page_number))
         self.databaseDriver.updateKeyword(keyword)
 
-    def newThreadParse(self, html):
-        thread = Parser(html)
+    def newThreadParse(self, html, i):
+        thread = Parser(html, self.listOfDriver[i]["driver"], self.listOfDriver[i]["lock"])
         thread.start()
 
 
@@ -65,15 +79,13 @@ def GBK2312():
 
 
 def echo():
-    try:
+
+        reptile = Reptile()
         while (True):
             keyword = GBK2312()
             print("开始爬取关键字：" + keyword)
-            reptile = Reptile()
             reptile.searchPaperListByKeyWord(keyword)
-    except Exception as e:
-        print(e)
-        echo()
+
 
 
 # if __name__ == '__main__':

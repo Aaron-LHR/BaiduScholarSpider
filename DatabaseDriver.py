@@ -11,8 +11,25 @@ class DatabaseDriver:
         self.passwd = passwd
         self.database_name = database_name
         self.db = pymysql.connect(host=host, port=port, user=user, passwd=passwd, db=database_name)  # 打开数据库连接
-        print("成功连接数据库！")
+
         self.cursor = self.db.cursor()  # 使用 cursor() 方法创建一个游标对象 cursor
+
+    def insertPapers(self, paperList):
+        sql = "INSERT INTO document(title, experts, dtype, documentid, time_, doi, isbn, application_number, cited_quantity, summary, keywords, link, origin) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        for item in paperList:
+            try:
+                self.cursor.execute(sql, (item["title"], ','.join(item["authors"]), item["category"], item["id"],
+                                                  item["time"],
+                                                  item["DOI"], item["ISBN"], item['patentNumber'],
+                                                  item["citedQuantity"],
+                                                  item["abstract"], ','.join(item["keywords"]), item["link"], item["source"]))
+                self.db.commit()
+                print(item)
+                print("Insert successfully!")
+            except Exception as e:
+                self.db.rollback()
+                print("Fail:", end="")
+                print(e)
 
     def insertDocument(self, title, authors, category, id, time, DOI, ISBN, patentNumber, citedQuantity, abstract,
                        keywords, link, source):
