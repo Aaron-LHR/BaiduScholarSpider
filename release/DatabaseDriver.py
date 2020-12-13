@@ -11,8 +11,25 @@ class DatabaseDriver:
         self.passwd = passwd
         self.database_name = database_name
         self.db = pymysql.connect(host=host, port=port, user=user, passwd=passwd, db=database_name)  # 打开数据库连接
-        print("成功连接数据库！")
+
         self.cursor = self.db.cursor()  # 使用 cursor() 方法创建一个游标对象 cursor
+
+    def insertPapers(self, paperList):
+        sql = "INSERT INTO document(title, experts, dtype, documentid, time_, doi, isbn, application_number, cited_quantity, summary, keywords, link, origin) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        for item in paperList:
+            try:
+                self.cursor.execute(sql, (item["title"], ','.join(item["authors"]), item["category"], item["id"],
+                                                  item["time"],
+                                                  item["DOI"], item["ISBN"], item['patentNumber'],
+                                                  item["citedQuantity"],
+                                                  item["abstract"], ','.join(item["keywords"]), item["link"], item["source"]))
+                self.db.commit()
+                print(item)
+                print("Insert successfully!")
+            except Exception as e:
+                self.db.rollback()
+                print("Fail:", end="")
+                print(e)
 
     def insertDocument(self, title, authors, category, id, time, DOI, ISBN, patentNumber, citedQuantity, abstract,
                        keywords, link, source):
@@ -23,16 +40,18 @@ class DatabaseDriver:
             title, ','.join(authors), category, id, time, DOI, ISBN, patentNumber, citedQuantity, abstract,
             ','.join(keywords), link, source))
             self.db.commit()
-            print("Insert successfully!")
+            # print("Insert successfully!")
+            return True
         except Exception as e:
             self.db.rollback()
-            print("Fail:", end="")
-            print(e)
+            # print("Fail:", end="")
+            # print(e)
+            return str(e)
         # 关闭数据库连接
         # self.db.close()
 
     def getPageNumber(self, keyword):
-        sql = "SELECT quantity FROM reptile_record WHERE name= %s"
+        sql = "SELECT quantity FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
@@ -46,7 +65,7 @@ class DatabaseDriver:
             print(e)
 
     def keywordExists(self, keyword):
-        sql = "SELECT name FROM reptile_record WHERE name= %s"
+        sql = "SELECT name FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
@@ -60,13 +79,13 @@ class DatabaseDriver:
             print(e)
 
     def updateKeyword(self, keyword):
-        sql = "SELECT name FROM reptile_record WHERE name= %s"
+        sql = "SELECT name FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
             results = self.cursor.fetchall()
             if len(results) == 0:
-                sql = "INSERT INTO reptile_record(name) VALUES (%s)"
+                sql = "INSERT INTO paper_spider_record(name) VALUES (%s)"
                 self.cursor.execute(sql, keyword)
             self.db.commit()
             print("Update record successfully!")
@@ -76,16 +95,16 @@ class DatabaseDriver:
             print(e)
 
     def setPageNumber(self, keyword, number):
-        sql = "SELECT quantity FROM reptile_record WHERE name= %s"
+        sql = "SELECT quantity FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
             results = self.cursor.fetchall()
             if len(results) == 0:
-                sql = "INSERT INTO reptile_record(name, quantity) VALUES (%s, %s)"
+                sql = "INSERT INTO paper_spider_record(name, quantity) VALUES (%s, %s)"
                 self.cursor.execute(sql, (keyword, number))
             else:
-                sql = "UPDATE reptile_record SET quantity = %s WHERE name = %s"
+                sql = "UPDATE paper_spider_record SET quantity = %s WHERE name = %s"
                 self.cursor.execute(sql, (number, keyword))
             self.db.commit()
             print("Update record successfully!")

@@ -51,7 +51,7 @@ class DatabaseDriver:
         # self.db.close()
 
     def getPageNumber(self, keyword):
-        sql = "SELECT quantity FROM reptile_record WHERE name= %s"
+        sql = "SELECT quantity FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
@@ -64,8 +64,22 @@ class DatabaseDriver:
             print("Fail:", end="")
             print(e)
 
-    def keywordExists(self, keyword):
-        sql = "SELECT name FROM reptile_record WHERE name= %s"
+    def paperKeywordExists(self, keyword):
+        sql = "SELECT name FROM paper_spider_record WHERE name= %s"
+        # 使用 execute()  方法执行 SQL 查询
+        try:
+            self.cursor.execute(sql, keyword)
+            results = self.cursor.fetchall()
+            if len(results) == 0:
+                return False
+            else:
+                return True
+        except Exception as e:
+            print("关键词数据库记录查询失败:", end="")
+            print(e)
+
+    def authorKeywordExists(self, keyword):
+        sql = "SELECT name FROM author_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
@@ -79,13 +93,13 @@ class DatabaseDriver:
             print(e)
 
     def updateKeyword(self, keyword):
-        sql = "SELECT name FROM reptile_record WHERE name= %s"
+        sql = "SELECT name FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
             results = self.cursor.fetchall()
             if len(results) == 0:
-                sql = "INSERT INTO reptile_record(name) VALUES (%s)"
+                sql = "INSERT INTO paper_spider_record(name) VALUES (%s)"
                 self.cursor.execute(sql, keyword)
             self.db.commit()
             print("Update record successfully!")
@@ -95,16 +109,16 @@ class DatabaseDriver:
             print(e)
 
     def setPageNumber(self, keyword, number):
-        sql = "SELECT quantity FROM reptile_record WHERE name= %s"
+        sql = "SELECT quantity FROM paper_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
         try:
             self.cursor.execute(sql, keyword)
             results = self.cursor.fetchall()
             if len(results) == 0:
-                sql = "INSERT INTO reptile_record(name, quantity) VALUES (%s, %s)"
+                sql = "INSERT INTO paper_spider_record(name, quantity) VALUES (%s, %s)"
                 self.cursor.execute(sql, (keyword, number))
             else:
-                sql = "UPDATE reptile_record SET quantity = %s WHERE name = %s"
+                sql = "UPDATE paper_spider_record SET quantity = %s WHERE name = %s"
                 self.cursor.execute(sql, (number, keyword))
             self.db.commit()
             print("Update record successfully!")
