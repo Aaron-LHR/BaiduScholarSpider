@@ -32,17 +32,18 @@ class DatabaseDriver:
                 print(e)
 
 
-    def insertExpert(self, item):
+    def insertExpert(self, expertList):
         sql = "INSERT INTO expert(expertid, name, org, domain) VALUES (%s, %s, %s, %s)"
-        try:
-            self.cursor.execute(sql, (item["id"], ','.join(item["name"]), item["affiliate"], item["domain"]))
-            self.db.commit()
+        for item in expertList:
             print(item)
-            print("Insert successfully!")
-        except Exception as e:
-            self.db.rollback()
-            print("Fail:", end="")
-            print(e)
+            try:
+                self.cursor.execute(sql, (item["id"], item["name"], item["affiliate"], item["domain"]))
+                self.db.commit()
+                print("Insert successfully!")
+            except Exception as e:
+                self.db.rollback()
+                print("Fail:", end="")
+                print(e)
 
     def insertDocument(self, title, authors, category, id, time, DOI, ISBN, patentNumber, citedQuantity, abstract,
                        keywords, link, source):

@@ -1,8 +1,10 @@
 # -*- coding:UTF-8 -*-
 import hashlib
+import json
 import random
 import re
 import threading
+import traceback
 import urllib.request
 import urllib.parse
 from urllib.parse import quote
@@ -22,7 +24,7 @@ class AuthorSpider:
                           "Chrome/86.0.4240.183 Safari/537.36"}
         self.databaseDriver = DatabaseDriver(host="49.232.157.22", port=3306, user="BUAA", passwd="BUAA1821",
                                              database_name="BUAA")
-        self.numOfDriver = 1
+        self.numOfDriver = 10
         self.listOfDriver = {}
         for i in range(self.numOfDriver):
             driverAndLock = {
@@ -32,10 +34,11 @@ class AuthorSpider:
             }
             self.listOfDriver[str(i)] = driverAndLock
             print(str(i) + "号成功连接数据库！")
+        self.i = 0
 
     def authorSearchResultUrlEncode(self, author_name):
         author_name = quote(author_name, encoding="utf-8")
-        path = "https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=inject_page&author=" + author_name
+        path = "https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=search_author&_token=d42af69d15e668e785ec6b93c2078ff994cf472c77364f602a14e2063c642f6d&_ts=1607846428&_sign=a0234cb9bbf84aa6a08e18141fdd38a2&author=" + author_name + "&affiliate=&curPageNum=1"
         # print(path)
         return path
 
@@ -52,29 +55,24 @@ class AuthorSpider:
     def searchAuthorListByKeyWord(self, keyword):
         if self.databaseDriver.authorKeywordExists(keyword):
             return
-        i = 0
         request = urllib.request.Request(url=self.authorSearchResultUrlEncode(keyword), headers=self.headers)
         response = urllib.request.urlopen(request)
-        authorListHtml = response.read().decode("utf-8")
-        # print(authorListHtml)
-        with open("author.html", mode='w', encoding="utf-8") as file:
-            file.write(authorListHtml)
+        authorListHtml = json.load(response)["htmldata"]
+        # print(type(authorListHtml))
+        # with open("author.html", mode='w', encoding="utf-8") as file:
+        #     file.write(authorListHtml)
         bs = BeautifulSoup(authorListHtml, "html.parser")
-        try:
-            personalSearchDiv = bs.select("#personalSearch_result")
-            for personName in personalSearchDiv.select("a[class='personName']"):
-                link = personName.get("href")
-                self.listOfDriver[str(i)]["lock"].acquire()
-                self.newThreadParse(link, str(i))
-                i = (i + 1) % self.numOfDriver
-                i += 1
-            # self.databaseDriver.setPageNumber(keyword, str(page_number))
-            self.databaseDriver.updateAuthorKeyword(keyword)
-        except:
-            return
+        self.listOfDriver[str(self.i)]["lock"].acquire()
+        self.newThreadParse(bs, str(self.i))
+        self.i += 1
+        self.i = (self.i + 1) % self.numOfDriver
 
-    def newThreadParse(self, link, i):
-        thread = AuthorParser(link, self.listOfDriver[i]["driver"], self.listOfDriver[i]["lock"])
+        # print(bs)
+        self.databaseDriver.updateAuthorKeyword(keyword)
+
+
+    def newThreadParse(self, bs, i):
+        thread = AuthorParser(bs, self.listOfDriver[i]["driver"], self.listOfDriver[i]["lock"])
         thread.start()
 
 
@@ -94,7 +92,8 @@ def echo():
             print("开始爬取关键字：" + keyword)
             authorSpider.searchAuthorListByKeyWord(keyword)
     except Exception as e:
-        print("echoError" + str(e))
+        print("echoError:")
+        traceback.print_exc()
         echo()
 
 
