@@ -14,6 +14,9 @@ class DatabaseDriver:
 
         self.cursor = self.db.cursor()  # 使用 cursor() 方法创建一个游标对象 cursor
 
+    def releaseDatabase(self):
+        self.db.close()
+
     def insertPapers(self, paperList):
         sql = "INSERT INTO document(title, experts, dtype, documentid, time_, doi, isbn, application_number, cited_quantity, summary, keywords, link, origin) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         for item in paperList:

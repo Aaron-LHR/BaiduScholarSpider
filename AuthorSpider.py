@@ -36,6 +36,10 @@ class AuthorSpider:
             print(str(i) + "号成功连接数据库！")
         self.i = 0
 
+    def releaseDriver(self):
+        for driverAndLock in self.listOfDriver.values():
+            driverAndLock["lock"].releaseDatabase()
+
     def authorSearchResultUrlEncode(self, author_name, pageNumber):
         author_name = quote(author_name, encoding="utf-8")
         path = "https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=search_author&_token=d42af69d15e668e785ec6b93c2078ff994cf472c77364f602a14e2063c642f6d&_ts=1607846428&_sign=a0234cb9bbf84aa6a08e18141fdd38a2&author=" + author_name + "&affiliate=&curPageNum=" + str(pageNumber)
@@ -86,13 +90,14 @@ def GBK2312():
 
 
 def echo():
+    authorSpider = AuthorSpider()
     try:
-        authorSpider = AuthorSpider()
         while (True):
             keyword = GBK2312()
             print("开始爬取关键字：" + keyword)
             authorSpider.searchAuthorListByKeyWord(keyword)
     except Exception as e:
+        authorSpider.releaseDriver()
         print("echoError:")
         traceback.print_exc()
         echo()

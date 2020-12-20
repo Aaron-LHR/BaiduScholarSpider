@@ -33,6 +33,10 @@ class PaperSpider:
             self.listOfDriver[str(i)] = driverAndLock
             print(str(i) + "号成功连接数据库！")
 
+    def releaseDriver(self):
+        for driverAndLock in self.listOfDriver.values():
+            driverAndLock["lock"].releaseDatabase()
+
     def urlEncode(self, keyword, page_number):
         keyword = quote(keyword, encoding="utf-8")
         path = "https://xueshu.baidu.com/s?wd=" + keyword + "&pn=" + str(
@@ -81,13 +85,14 @@ def GBK2312():
 
 
 def echo():
+    paperSpider = PaperSpider()
     try:
-        paperSpider = PaperSpider()
         while (True):
             keyword = GBK2312()
             print("开始爬取关键字：" + keyword)
             paperSpider.searchPaperListByKeyWord(keyword)
     except Exception as e:
+        paperSpider.releaseDriver()
         print("echoError" + str(e))
         echo()
 
