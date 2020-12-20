@@ -17,14 +17,14 @@ class DatabaseDriver:
     def insertPapers(self, paperList):
         sql = "INSERT INTO document(title, experts, dtype, documentid, time_, doi, isbn, application_number, cited_quantity, summary, keywords, link, origin) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         for item in paperList:
+            print(item)
             try:
                 self.cursor.execute(sql, (item["title"], ','.join(item["authors"]), item["category"], item["id"],
-                                                  item["time"],
-                                                  item["DOI"], item["ISBN"], item['patentNumber'],
-                                                  item["citedQuantity"],
-                                                  item["abstract"], ','.join(item["keywords"]), item["link"], item["source"]))
+                                          item["time"],
+                                          item["DOI"], item["ISBN"], item['patentNumber'],
+                                          item["citedQuantity"],
+                                          item["abstract"], ','.join(item["keywords"]), item["link"], item["source"]))
                 self.db.commit()
-                print(item)
                 print("Insert successfully!")
             except Exception as e:
                 self.db.rollback()

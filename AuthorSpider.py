@@ -36,9 +36,9 @@ class AuthorSpider:
             print(str(i) + "号成功连接数据库！")
         self.i = 0
 
-    def authorSearchResultUrlEncode(self, author_name):
+    def authorSearchResultUrlEncode(self, author_name, pageNumber):
         author_name = quote(author_name, encoding="utf-8")
-        path = "https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=search_author&_token=d42af69d15e668e785ec6b93c2078ff994cf472c77364f602a14e2063c642f6d&_ts=1607846428&_sign=a0234cb9bbf84aa6a08e18141fdd38a2&author=" + author_name + "&affiliate=&curPageNum=1"
+        path = "https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=search_author&_token=d42af69d15e668e785ec6b93c2078ff994cf472c77364f602a14e2063c642f6d&_ts=1607846428&_sign=a0234cb9bbf84aa6a08e18141fdd38a2&author=" + author_name + "&affiliate=&curPageNum=" + str(pageNumber)
         # print(path)
         return path
 
@@ -55,17 +55,18 @@ class AuthorSpider:
     def searchAuthorListByKeyWord(self, keyword):
         if self.databaseDriver.authorKeywordExists(keyword):
             return
-        request = urllib.request.Request(url=self.authorSearchResultUrlEncode(keyword), headers=self.headers)
-        response = urllib.request.urlopen(request)
-        authorListHtml = json.load(response)["htmldata"]
-        # print(type(authorListHtml))
-        # with open("author.html", mode='w', encoding="utf-8") as file:
-        #     file.write(authorListHtml)
-        bs = BeautifulSoup(authorListHtml, "html.parser")
-        self.listOfDriver[str(self.i)]["lock"].acquire()
-        self.newThreadParse(bs, str(self.i))
-        self.i += 1
-        self.i = (self.i + 1) % self.numOfDriver
+        for i in range(1, 168):
+            request = urllib.request.Request(url=self.authorSearchResultUrlEncode(keyword, i), headers=self.headers)
+            response = urllib.request.urlopen(request)
+            authorListHtml = json.load(response)["htmldata"]
+            # print(type(authorListHtml))
+            # with open("author.html", mode='w', encoding="utf-8") as file:
+            #     file.write(authorListHtml)
+            bs = BeautifulSoup(authorListHtml, "html.parser")
+            if len(bs.select("div[class='searchResult_text']")) == 0:
+                break
+            self.listOfDriver[str(i % self.numOfDriver)]["lock"].acquire()
+            self.newThreadParse(bs, str(i % self.numOfDriver))
 
         # print(bs)
         self.databaseDriver.updateAuthorKeyword(keyword)
