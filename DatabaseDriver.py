@@ -48,6 +48,17 @@ class DatabaseDriver:
                 print("Fail:", end="")
                 print(e)
 
+    def getExpert(self, keyword):
+        sql = "SELECT name FROM expert WHERE name like %s"
+        # 使用 execute()  方法执行 SQL 查询
+        try:
+            self.cursor.execute(sql, "%" + keyword + "%")
+            results = self.cursor.fetchall()
+            return results
+        except Exception as e:
+            print("关键词数据库记录查询失败:", end="")
+            print(e)
+
     def insertDocument(self, title, authors, category, id, time, DOI, ISBN, patentNumber, citedQuantity, abstract,
                        keywords, link, source):
         sql = "INSERT INTO document(title, experts, dtype, documentid, time_, doi, isbn, application_number, cited_quantity, summary, keywords, link, origin) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
@@ -95,6 +106,20 @@ class DatabaseDriver:
             print("关键词数据库记录查询失败:", end="")
             print(e)
 
+    def expertExists(self, expertName):
+        sql = "SELECT name FROM expert_spider_record WHERE name= %s"
+        # 使用 execute()  方法执行 SQL 查询
+        try:
+            self.cursor.execute(sql, expertName)
+            results = self.cursor.fetchall()
+            if len(results) == 0:
+                return False
+            else:
+                return True
+        except Exception as e:
+            print("关键词数据库记录查询失败:", end="")
+            print(e)
+
     def authorKeywordExists(self, keyword):
         sql = "SELECT name FROM author_spider_record WHERE name= %s"
         # 使用 execute()  方法执行 SQL 查询
@@ -110,14 +135,9 @@ class DatabaseDriver:
             print(e)
 
     def updateKeyword(self, keyword):
-        sql = "SELECT name FROM paper_spider_record WHERE name= %s"
-        # 使用 execute()  方法执行 SQL 查询
         try:
+            sql = "INSERT INTO paper_spider_record(name) VALUES (%s)"
             self.cursor.execute(sql, keyword)
-            results = self.cursor.fetchall()
-            if len(results) == 0:
-                sql = "INSERT INTO paper_spider_record(name) VALUES (%s)"
-                self.cursor.execute(sql, keyword)
             self.db.commit()
             print("Update record successfully!")
         except Exception as e:
@@ -125,15 +145,21 @@ class DatabaseDriver:
             print("数据库更新关键词失败:", end="")
             print(e)
 
-    def updateAuthorKeyword(self, keyword):
-        sql = "SELECT name FROM author_spider_record WHERE name= %s"
-        # 使用 execute()  方法执行 SQL 查询
+    def updateExpertName(self, expertName):
         try:
+            sql = "INSERT INTO expert_spider_record(name) VALUES (%s)"
+            self.cursor.execute(sql, expertName)
+            self.db.commit()
+            print("Update expertName successfully!")
+        except Exception as e:
+            self.db.rollback()
+            print("数据库更新关键词失败:", end="")
+            print(e)
+
+    def updateAuthorKeyword(self, keyword):
+        try:
+            sql = "INSERT INTO author_spider_record(name) VALUES (%s)"
             self.cursor.execute(sql, keyword)
-            results = self.cursor.fetchall()
-            if len(results) == 0:
-                sql = "INSERT INTO author_spider_record(name) VALUES (%s)"
-                self.cursor.execute(sql, keyword)
             self.db.commit()
             print("Update record successfully!")
         except Exception as e:
@@ -164,4 +190,4 @@ class DatabaseDriver:
 if __name__ == '__main__':
     databaseDriver = DatabaseDriver(host="49.232.157.22", port=3306, user="BUAA", passwd="BUAA1821",
                                     database_name="BUAA")
-    databaseDriver.updateKeyword('啊')
+    print(len(databaseDriver.getExpert("5")))

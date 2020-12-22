@@ -40,12 +40,13 @@ class AuthorParser(threading.Thread):
 
     def getAuthorName(self, searchResult_textDiv):
         try:
-            name = searchResult_textDiv.select("a[class='personName']", limit=1)[0].string
+            name = searchResult_textDiv.select("a[class='personName']", limit=1)[0].next_element
         except:
             # try:
             #     name = main_info.h3.span.string
             # except:
             name = ""
+        # print(searchResult_textDiv.select("a[class='personName']", limit=1))
         return name.lstrip().rstrip().replace('\n', '').replace('\r', '')
 
     def getAffiliate(self, searchResult_textDiv):

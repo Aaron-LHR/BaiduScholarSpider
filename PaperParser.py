@@ -2,6 +2,7 @@
 import hashlib
 import re
 import threading
+import time
 import urllib
 import urllib.parse
 import urllib.request
@@ -33,13 +34,12 @@ class PaperParser(threading.Thread):
         finally:
             self.lock.release()
 
-
     def getTitle(self, main_info):
         try:
-            title = main_info.h3.a.string
+            title = main_info.h3.a.next_element
         except:
             try:
-                title = main_info.h3.span.string
+                title = main_info.h3.span.next_element
             except:
                 title = ""
         return title.lstrip().rstrip().replace('\n', '').replace('\r', '')
@@ -189,6 +189,7 @@ class PaperParser(threading.Thread):
     def savePaperByUrl(self, url):
         request = urllib.request.Request(url=url, headers=self.headers)
         response = urllib.request.urlopen(request)
+        # time.sleep(1)
         html = response.read().decode("utf-8")
         bs = BeautifulSoup(html, "html.parser")
         main_info = bs.select("div[class='main-info']", limit=1)

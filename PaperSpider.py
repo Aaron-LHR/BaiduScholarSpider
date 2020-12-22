@@ -3,6 +3,7 @@ import hashlib
 import random
 import re
 import threading
+import traceback
 import urllib.request
 import urllib.parse
 from urllib.parse import quote
@@ -35,7 +36,7 @@ class PaperSpider:
 
     def releaseDriver(self):
         for driverAndLock in self.listOfDriver.values():
-            driverAndLock["lock"].releaseDatabase()
+            driverAndLock["driver"].releaseDatabase()
 
     def urlEncode(self, keyword, page_number):
         keyword = quote(keyword, encoding="utf-8")
@@ -53,6 +54,7 @@ class PaperSpider:
 
     def searchPaperListByKeyWord(self, keyword):
         if self.databaseDriver.paperKeywordExists(keyword):
+            print("\"" + keyword + "\"已被爬取完，跳转至下一字")
             return
         # page_number = self.getPageNumber(keyword)
         page_number = 0
@@ -66,10 +68,41 @@ class PaperSpider:
             self.newThreadParse(html, str(i))
             page_number += 10
             i = (i + 1) % self.numOfDriver
-            if page_number >= 800:
+            if page_number >= 600:
                 break
             # self.databaseDriver.setPageNumber(keyword, str(page_number))
         self.databaseDriver.updateKeyword(keyword)
+
+    def searchPaperListByExpert(self, keyword):
+        try:
+            if self.databaseDriver.expertExists(keyword):
+                print("\"" + keyword + "\"已被爬取完，跳转至下一字")
+                return
+            rows = self.databaseDriver.getExpert(keyword)
+            if len(rows) == 0:
+                print("\"" + keyword + "\"expert库内无此关键字作者")
+                return
+            i = 0
+            for row in rows:
+                expertName = row[0]
+                print("爬取" + expertName + "作者的文章")
+            # page_number = self.getPageNumber(keyword)
+                page_number = 0
+                # print("\"" + keyword + "\"" + "领域已爬取到" + str(page_number) + "条数据，本次继续爬取")
+
+                while True:
+                    request = urllib.request.Request(url=self.urlEncode(expertName, page_number), headers=self.headers)
+                    response = urllib.request.urlopen(request)
+                    html = response.read().decode("utf-8")
+                    self.listOfDriver[str(i)]["lock"].acquire()
+                    self.newThreadParse(html, str(i))
+                    page_number += 10
+                    i = (i + 1) % self.numOfDriver
+                    if page_number >= 600:
+                        break
+                self.databaseDriver.updateExpertName(expertName)
+        except:
+            traceback.print_exc()
 
     def newThreadParse(self, html, i):
         thread = PaperParser(html, self.listOfDriver[i]["driver"], self.listOfDriver[i]["lock"])
@@ -87,13 +120,16 @@ def GBK2312():
 def echo():
     paperSpider = PaperSpider()
     try:
-        while (True):
+        while True:
             keyword = GBK2312()
+            # keyword = "姚淑珍"
             print("开始爬取关键字：" + keyword)
-            paperSpider.searchPaperListByKeyWord(keyword)
+            # paperSpider.searchPaperListByKeyWord(keyword)
+            paperSpider.searchPaperListByExpert(keyword)
     except Exception as e:
         paperSpider.releaseDriver()
-        print("echoError" + str(e))
+        print("echoError:")
+        traceback.print_exc()
         echo()
 
 
